@@ -1,0 +1,89 @@
+#Produce some numerical and graphical summaries of the “Weekly” data.
+library(MASS)
+library(class)
+library(ISLR)
+install.packages("corrplot")
+library(corrplot)
+summary(Weekly)
+corrplot(cor(Weekly[,-9]), method="circle", pch.col = "black")
+
+
+Using the full data to perform logistic regression with “Direction” as the response
+and the five lag variables, plus volume, as predictors. Using the summary
+function to print the results.
+
+attach(Weekly)
+Weekly.fit<-glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume, data=Weekly,family=binomial)
+summary(Weekly.fit)
+
+the lag2 variable appears to be  statistically significant 
+
+#the “confusion matrix” and overall fraction of correct predictions. 
+
+
+logWeekly_prob= predict(Weekly.fit, type='response')
+logWeekly_pred =rep("FALSE", length(logWeekly_prob))
+logWeekly_pred[logWeekly_prob > 0.5] = "TRUE"
+table(logWeekly_pred, Direction)
+  output:            Direction
+logWeekly_pred Down  Up
+         FALSE   54  48
+         TRUE   430 557
+
+
+#Fitting the logistic model using a training data period from 1990-2008, with “Lag2”
+as the only predictor
+
+train = (Year>2008)
+train_1 = (Year <2009)
+week_con = Weekly[train,]
+head(week)
+Weekly.fit<-glm(Direction~Lag2, data=Weekly,family=binomial, subset=train_1)
+logWeekly_prob= predict(Weekly.fit, week_con, type = "response")
+logWeekly_pred = rep("False", length(logWeekly_prob))
+logWeekly_pred[logWeekly_prob > 0.5] = "True"
+Direction_con = Direction[train]
+table(logWeekly_pred, Direction_con)
+mean(logWeekly_pred == Direction_con)
+this has accuracy of 62.5%	
+
+#LDA
+
+Weeklylda.fit<-lda(Direction~Lag2, data=Weekly,family=binomial, subset=train_1)
+Weeklylda.pred<-predict(Weeklylda.fit, week_con)
+table(Weeklylda.pred$class, Direction_con)
+
+mean(Weeklylda.pred$class==Direction_con)
+this has accuracy of 62.5%
+
+
+#KNN
+
+Week_train=as.matrix(Lag2[train_1])
+Week_test=as.matrix(Lag2[train])
+Direction_train =Direction[train_1]
+set.seed(1)
+Weekknn=knn(Week_train,Week_test,Direction_train,k=1)
+table(Weekknn,Direction_con)
+
+
+mean(Weekknn==Direction_con)
+it has accuracy of 50%
+
+#different combinations of predictiors including possible transformations and
+interactions of each method
+
+interaction of lag2:lag4+lag2
+Weekly.fit<-glm(Direction~Lag2::Lag4+Lag2, data=Weekly,family=binomial, subset=train_1)
+logWeekly_prob= predict(Weekly.fit, week_con, type = "response")
+logWeekly_pred = rep("False", length(logWeekly_prob))
+logWeekly_pred[logWeekly_prob > 0.5] = "True"
+Direction_con = Direction[train]
+table(logWeekly_pred, Direction_con)
+
+# k= 10
+Week_train=as.matrix(Lag2[train_1])
+Week_test=as.matrix(Lag2[train])
+Direction_train =Direction[train_1]
+set.seed(1)
+Weekknn=knn(Week_train,Week_test,Direction_train,k=10)
